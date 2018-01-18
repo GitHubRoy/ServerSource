@@ -202,15 +202,22 @@ public class Server {
                             case MKGRP:
                                 String[] parse = message.getPayload().split(" ");
                                 String groupname = parse[0];
-                                if (!groupAlreadyExists(groupname)){
+                                if (!groupAlreadyExists(groupname)) {
                                     UserGroup group = new UserGroup(groupname, username);
                                     groups.add(group);
                                     writeToClient("+OK");
-                                }else {
+                                } else {
                                     writeToClient("-ERR groupname already exists");
                                 }
-
-
+                                break;
+                            case LSTGRP:
+                                System.out.println("[Listing groups....]");
+                                StringBuilder grouplistSB = new StringBuilder();
+                                for (int i = 0; i < groups.size(); i++) {
+                                    grouplistSB.append(System.lineSeparator() + groups.get(i).getGroupname() + ";");
+                                }
+                                String grouplist = grouplistSB.toString();
+                                writeToClient("+OK " + System.lineSeparator() + grouplist + "");
                                 break;
                             case QUIT:
                                 // Close connection
@@ -345,12 +352,12 @@ public class Server {
             }
         }
 
-        private boolean groupAlreadyExists(String groupname){
-            if(groups.isEmpty()){
+        private boolean groupAlreadyExists(String groupname) {
+            if (groups.isEmpty()) {
                 return false;
             }
-            for (int i = 0; i < groups.size(); i++){
-                if(groups.get(i).getGroupname().equals(groupname)){
+            for (int i = 0; i < groups.size(); i++) {
+                if (groups.get(i).getGroupname().equals(groupname)) {
                     return true;
                 }
             }
