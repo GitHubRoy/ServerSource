@@ -202,10 +202,13 @@ public class Server {
                             case MKGRP:
                                 String[] parse = message.getPayload().split(" ");
                                 String groupname = parse[0];
+<<<<<<< HEAD
                                 if (!groupExists(groupname)) {
                                     UserGroup group = new UserGroup(groupname, this);
+=======
                                 if (!groupAlreadyExists(groupname)) {
                                     UserGroup group = new UserGroup(groupname, username);
+>>>>>>> 322dd2f6b314035332e74dc1fa6facfa8279b343
                                     groups.add(group);
                                     writeToClient("+OK");
                                 } else {
@@ -228,6 +231,14 @@ public class Server {
                                     writeToClient("+OK");
                                 }
 =======
+                            case LSTGRP:
+                                System.out.println("[Listing groups....]");
+                                StringBuilder grouplistSB = new StringBuilder();
+                                for (int i = 0; i < groups.size(); i++) {
+                                    grouplistSB.append(System.lineSeparator() + groups.get(i).getGroupname() + ";");
+                                }
+                                String grouplist = grouplistSB.toString();
+                                writeToClient("+OK " + System.lineSeparator() + grouplist + "");
 >>>>>>> 322dd2f6b314035332e74dc1fa6facfa8279b343
                                 break;
                             case QUIT:
@@ -366,6 +377,7 @@ public class Server {
 <<<<<<< HEAD
         private boolean groupExists(String groupname) {
 =======
+        private boolean groupAlreadyExists(String groupname) {
 >>>>>>> 322dd2f6b314035332e74dc1fa6facfa8279b343
             if (groups.isEmpty()) {
                 return false;

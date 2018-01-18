@@ -7,8 +7,11 @@ public class Message {
         LSTUS,
         MSG,
         MKGRP,
+<<<<<<< HEAD
         JNGRP,
+=======
         LSTGRP,
+>>>>>>> 322dd2f6b314035332e74dc1fa6facfa8279b343
         QUIT,
         UNKOWN,
     }
