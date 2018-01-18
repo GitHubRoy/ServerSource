@@ -230,10 +230,10 @@ public class Server {
                                 System.out.println("[Listing groups....]");
                                 StringBuilder grouplistSB = new StringBuilder();
                                 for (int i = 0; i < groups.size(); i++) {
-                                    grouplistSB.append(System.lineSeparator() + groups.get(i).getGroupname() + ";");
+                                    grouplistSB.append(groups.get(i).getGroupname() + "; ");
                                 }
                                 String grouplist = grouplistSB.toString();
-                                writeToClient("+OK " + System.lineSeparator() + grouplist + "");
+                                writeToClient("+OK Groups: " + grouplist + "");
                                 break;
                             case QUIT:
                                 // Close connection
