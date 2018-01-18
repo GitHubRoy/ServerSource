@@ -6,6 +6,7 @@ public class Message {
         BCST,
         LSTUS,
         MSG,
+        MKGRP,
         QUIT,
         UNKOWN,
     }
