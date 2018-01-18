@@ -202,20 +202,16 @@ public class Server {
                             case MKGRP:
                                 String[] parse = message.getPayload().split(" ");
                                 String groupname = parse[0];
-<<<<<<< HEAD
                                 if (!groupExists(groupname)) {
                                     UserGroup group = new UserGroup(groupname, this);
-=======
-                                if (!groupAlreadyExists(groupname)) {
-                                    UserGroup group = new UserGroup(groupname, username);
->>>>>>> 322dd2f6b314035332e74dc1fa6facfa8279b343
-                                    groups.add(group);
-                                    writeToClient("+OK");
-                                } else {
-                                    writeToClient("-ERR groupname already exists");
+                                    if (!groupExists(groupname)) {
+                                        groups.add(group);
+                                        writeToClient("+OK");
+                                    } else {
+                                        writeToClient("-ERR groupname already exists");
+                                    }
                                 }
                                 break;
-<<<<<<< HEAD
                             case JNGRP:
                                 if (!groupExists(message.getPayload())) {
                                     writeToClient("-ERR Group doesn't exist.");
@@ -223,14 +219,13 @@ public class Server {
                                     for (UserGroup group : groups) {
                                         if (group.getGroupname().equals(message.getPayload())) {
                                             group.addParticipant(this);
-                                            for(ClientThread ct : group.getParticipants()){
-                                                ct.writeToClient(conf.CLI_COLOR_OUTGOING + "BCST "+getUsername()+" joined");
+                                            for (ClientThread ct : group.getParticipants()) {
+                                                ct.writeToClient(conf.CLI_COLOR_OUTGOING + "BCST " + getUsername() + " joined");
                                             }
                                         }
                                     }
                                     writeToClient("+OK");
                                 }
-=======
                             case LSTGRP:
                                 System.out.println("[Listing groups....]");
                                 StringBuilder grouplistSB = new StringBuilder();
@@ -239,7 +234,6 @@ public class Server {
                                 }
                                 String grouplist = grouplistSB.toString();
                                 writeToClient("+OK " + System.lineSeparator() + grouplist + "");
->>>>>>> 322dd2f6b314035332e74dc1fa6facfa8279b343
                                 break;
                             case QUIT:
                                 // Close connection
@@ -256,7 +250,10 @@ public class Server {
                 // Remove from the list of client threads and close the socket.
                 threads.remove(this);
                 socket.close();
-            } catch (IOException e) {
+            } catch (
+                    IOException e)
+
+            {
                 System.out.println("Server Exception: " + e.getMessage());
             }
         }
@@ -374,11 +371,8 @@ public class Server {
             }
         }
 
-<<<<<<< HEAD
+
         private boolean groupExists(String groupname) {
-=======
-        private boolean groupAlreadyExists(String groupname) {
->>>>>>> 322dd2f6b314035332e74dc1fa6facfa8279b343
             if (groups.isEmpty()) {
                 return false;
             }
@@ -389,5 +383,6 @@ public class Server {
             }
             return false;
         }
+
     }
 }
