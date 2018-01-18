@@ -7,6 +7,7 @@ public class Message {
         LSTUS,
         MSG,
         MKGRP,
+        JNGRP,
         QUIT,
         UNKOWN,
     }

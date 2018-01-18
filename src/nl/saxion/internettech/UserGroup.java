@@ -6,10 +6,10 @@ import java.util.ArrayList;
 public class UserGroup {
 
     private String groupname;
-    private String groupowner;
-    private ArrayList<String> participants = new ArrayList<>();
+    private Server.ClientThread groupowner;
+    private ArrayList<Server.ClientThread> participants = new ArrayList<>();
 
-    public UserGroup(String groupname, String groupowner){
+    public UserGroup(String groupname, Server.ClientThread groupowner){
         this.groupname = groupname;
         this.groupowner = groupowner;
     }
@@ -18,7 +18,7 @@ public class UserGroup {
         return groupname;
     }
 
-    public String getGroupowner() {
+    public Server.ClientThread getGroupowner() {
         return groupowner;
     }
 
@@ -27,15 +27,19 @@ public class UserGroup {
             return false;
         }
         for (int i = 0; i < participants.size(); i++){
-            if(participants.get(i).equals(username)){
+            if(participants.get(i).getUsername().equals(username)){
                 return true;
             }
         }
         return false;
     }
 
-    public boolean setParticipants(String participant) {
+    public boolean addParticipant(Server.ClientThread participant) {
         participants.add(participant);
         return true;
+    }
+
+    public ArrayList<Server.ClientThread> getParticipants() {
+        return participants;
     }
 }

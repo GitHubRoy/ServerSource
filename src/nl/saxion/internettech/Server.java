@@ -83,7 +83,7 @@ public class Server {
      * This inner class is used to handle all communication between the server and a
      * specific client.
      */
-    private class ClientThread implements Runnable {
+    public class ClientThread implements Runnable {
 
         private DataInputStream is;
         private OutputStream os;
@@ -202,15 +202,28 @@ public class Server {
                             case MKGRP:
                                 String[] parse = message.getPayload().split(" ");
                                 String groupname = parse[0];
-                                if (!groupAlreadyExists(groupname)){
-                                    UserGroup group = new UserGroup(groupname, username);
+                                if (!groupExists(groupname)) {
+                                    UserGroup group = new UserGroup(groupname, this);
                                     groups.add(group);
                                     writeToClient("+OK");
-                                }else {
+                                } else {
                                     writeToClient("-ERR groupname already exists");
                                 }
-
-
+                                break;
+                            case JNGRP:
+                                if (!groupExists(message.getPayload())) {
+                                    writeToClient("-ERR Group doesn't exist.");
+                                } else {
+                                    for (UserGroup group : groups) {
+                                        if (group.getGroupname().equals(message.getPayload())) {
+                                            group.addParticipant(this);
+                                            for(ClientThread ct : group.getParticipants()){
+                                                ct.writeToClient(conf.CLI_COLOR_OUTGOING + "BCST "+getUsername()+" joined");
+                                            }
+                                        }
+                                    }
+                                    writeToClient("+OK");
+                                }
                                 break;
                             case QUIT:
                                 // Close connection
@@ -345,12 +358,12 @@ public class Server {
             }
         }
 
-        private boolean groupAlreadyExists(String groupname){
-            if(groups.isEmpty()){
+        private boolean groupExists(String groupname) {
+            if (groups.isEmpty()) {
                 return false;
             }
-            for (int i = 0; i < groups.size(); i++){
-                if(groups.get(i).getGroupname().equals(groupname)){
+            for (int i = 0; i < groups.size(); i++) {
+                if (groups.get(i).getGroupname().equals(groupname)) {
                     return true;
                 }
             }
