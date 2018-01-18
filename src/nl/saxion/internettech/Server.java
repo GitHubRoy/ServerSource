@@ -182,14 +182,18 @@ public class Server {
                                 String whisperMessage = message.getPayload().substring(recievingUser.length() + 1);
 
                                 boolean succes = false;
-                                for (ClientThread ct : threads) {
-                                    if (ct.getUsername().equals(recievingUser)) {
-                                        ct.writeToClient("+WHISPER " + whisperMessage);
-                                        succes = true;
+                                if (threads.size() > 1) {
+                                    for (ClientThread ct : threads) {
+                                        if (ct.getUsername().equals(recievingUser)) {
+                                            ct.writeToClient("WHISPER " + ct.getUsername() + " " + whisperMessage);
+                                            succes = true;
+                                        }
                                     }
                                 }
                                 if (!succes) {
                                     writeToClient("-ERR Username doesn't exist.");
+                                } else {
+                                    writeToClient("+OK");
                                 }
                                 break;
                             case QUIT:
