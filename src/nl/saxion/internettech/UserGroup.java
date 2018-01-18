@@ -12,6 +12,7 @@ public class UserGroup {
     public UserGroup(String groupname, Server.ClientThread groupowner){
         this.groupname = groupname;
         this.groupowner = groupowner;
+        participants.add(groupowner);
     }
 
     public String getGroupname() {

@@ -220,12 +220,15 @@ public class Server {
                                         if (group.getGroupname().equals(message.getPayload())) {
                                             group.addParticipant(this);
                                             for (ClientThread ct : group.getParticipants()) {
-                                                ct.writeToClient(conf.CLI_COLOR_OUTGOING + "BCST " + getUsername() + " joined");
+                                                if(ct!=this) {
+                                                    ct.writeToClient("BCST " + getUsername() + " joined Group("+group.getGroupname()+")");
+                                                }
                                             }
                                         }
                                     }
                                     writeToClient("+OK");
                                 }
+                                break;
                             case LSTGRP:
                                 System.out.println("[Listing groups....]");
                                 StringBuilder grouplistSB = new StringBuilder();
