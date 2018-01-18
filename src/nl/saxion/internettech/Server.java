@@ -3,6 +3,7 @@ package nl.saxion.internettech;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Random;
 import java.util.Set;
@@ -13,6 +14,7 @@ public class Server {
 
     private ServerSocket serverSocket;
     private Set<ClientThread> threads;
+    private ArrayList<UserGroup> groups;
     private ServerConfiguration conf;
 
 
@@ -29,6 +31,7 @@ public class Server {
         try {
             serverSocket = new ServerSocket(conf.SERVER_PORT);
             threads = new HashSet<>();
+            groups = new ArrayList<>();
 
             while (true) {
                 // Wait for an incoming client-connection request (blocking).
@@ -192,6 +195,19 @@ public class Server {
                                     writeToClient("-ERR Username doesn't exist.");
                                 }
                                 break;
+                            case MKGRP:
+                                String[] parse = message.getPayload().split(" ");
+                                String groupname = parse[0];
+                                if (!groupAlreadyExists(groupname)){
+                                    UserGroup group = new UserGroup(groupname, username);
+                                    groups.add(group);
+                                    writeToClient("+OK");
+                                }else {
+                                    writeToClient("-ERR groupname already exists");
+                                }
+
+
+                                break;
                             case QUIT:
                                 // Close connection
                                 state = FINISHED;
@@ -323,6 +339,18 @@ public class Server {
             } else {
                 System.out.println(logMessage);
             }
+        }
+
+        private boolean groupAlreadyExists(String groupname){
+            if(groups.isEmpty()){
+                return false;
+            }
+            for (int i = 0; i < groups.size(); i++){
+                if(groups.get(i).getGroupname().equals(groupname)){
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }
