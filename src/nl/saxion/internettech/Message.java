@@ -8,6 +8,7 @@ public class Message {
         MSG,
         MKGRP,
         JNGRP,
+        LSTGRP,
         QUIT,
         UNKOWN,
     }

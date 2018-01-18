@@ -204,12 +204,15 @@ public class Server {
                                 String groupname = parse[0];
                                 if (!groupExists(groupname)) {
                                     UserGroup group = new UserGroup(groupname, this);
+                                if (!groupAlreadyExists(groupname)) {
+                                    UserGroup group = new UserGroup(groupname, username);
                                     groups.add(group);
                                     writeToClient("+OK");
                                 } else {
                                     writeToClient("-ERR groupname already exists");
                                 }
                                 break;
+<<<<<<< HEAD
                             case JNGRP:
                                 if (!groupExists(message.getPayload())) {
                                     writeToClient("-ERR Group doesn't exist.");
@@ -224,6 +227,8 @@ public class Server {
                                     }
                                     writeToClient("+OK");
                                 }
+=======
+>>>>>>> 322dd2f6b314035332e74dc1fa6facfa8279b343
                                 break;
                             case QUIT:
                                 // Close connection
@@ -358,7 +363,10 @@ public class Server {
             }
         }
 
+<<<<<<< HEAD
         private boolean groupExists(String groupname) {
+=======
+>>>>>>> 322dd2f6b314035332e74dc1fa6facfa8279b343
             if (groups.isEmpty()) {
                 return false;
             }
