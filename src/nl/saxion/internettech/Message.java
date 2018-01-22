@@ -9,6 +9,9 @@ public class Message {
         MKGRP,
         JNGRP,
         LSTGRP,
+        BCGRP,
+        LVGRP,
+        KICK,
         QUIT,
         UNKOWN,
     }

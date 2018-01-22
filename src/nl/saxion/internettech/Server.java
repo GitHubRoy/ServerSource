@@ -90,6 +90,7 @@ public class Server {
         private Socket socket;
         private ServerState state;
         private String username;
+        private Set<UserGroup> joinedUserGroups = new HashSet<>();
 
         public ClientThread(Socket socket) {
             this.state = INIT;
@@ -202,31 +203,32 @@ public class Server {
                             case MKGRP:
                                 String[] parse = message.getPayload().split(" ");
                                 String groupname = parse[0];
-                                if (!groupExists(groupname)) {
+                                if (groupExists(groupname) == null) {
                                     UserGroup group = new UserGroup(groupname, this);
-                                    if (!groupExists(groupname)) {
-                                        groups.add(group);
-                                        writeToClient("+OK");
-                                    } else {
-                                        writeToClient("-ERR groupname already exists");
-                                    }
+                                    groups.add(group);
+                                    joinedUserGroups.add(group);
+                                    writeToClient("+OK");
+                                } else {
+                                    writeToClient("-ERR groupname already exists");
                                 }
                                 break;
                             case JNGRP:
-                                if (!groupExists(message.getPayload())) {
+                                if (groupExists(message.getPayload()) == null) {
                                     writeToClient("-ERR Group doesn't exist.");
                                 } else {
                                     for (UserGroup group : groups) {
                                         if (group.getGroupname().equals(message.getPayload())) {
-                                            group.addParticipant(this);
-                                            for (ClientThread ct : group.getParticipants()) {
-                                                if(ct!=this) {
-                                                    ct.writeToClient("BCST " + getUsername() + " joined Group("+group.getGroupname()+")");
-                                                }
+                                            if (joinedUserGroups.contains(group)) {
+                                                writeToClient("-ERR already joined this group."); //TODO add this to documentation!
+                                            } else {
+                                                group.addParticipant(this);
+                                                joinedUserGroups.add(group);
+                                                writeToClient("+OK");
+                                                group.broadcastGroupMessage(getUsername() + " joined Group",this);
+                                                break;
                                             }
                                         }
                                     }
-                                    writeToClient("+OK");
                                 }
                                 break;
                             case LSTGRP:
@@ -237,6 +239,60 @@ public class Server {
                                 }
                                 String grouplist = grouplistSB.toString();
                                 writeToClient("+OK Groups: " + grouplist + "");
+                                break;
+                            case BCGRP:
+                                String groupName = message.getPayload().split(" ")[0];
+                                String groupMessage = message.getPayload().substring(groupName.length()+1);
+
+                                UserGroup grpToBroadcast = groupExists(groupName);
+                                if(grpToBroadcast != null && joinedUserGroups.contains(grpToBroadcast)){
+                                    grpToBroadcast.broadcastGroupMessage("["+getUsername()+"]"+groupMessage,this);
+                                    writeToClient("+OK");
+                                }else{
+                                    writeToClient("-ERR not in this group");
+                                }
+                                break;
+                            case LVGRP: //TODO documentatie LVGRP <GRP NAAM>
+                                String groupToLeave = message.getPayload().trim();
+
+                                UserGroup grpToLeave = groupExists(groupToLeave);
+                                if(grpToLeave != null && joinedUserGroups.contains(grpToLeave)){
+                                    joinedUserGroups.remove(grpToLeave);
+                                    boolean isgroupowner = grpToLeave.removeParticipant(this);
+                                    writeToClient("+OK");
+                                    if(!isgroupowner) {
+                                        grpToLeave.broadcastGroupMessage(getUsername() + " left the group", this);
+                                    }else{
+                                        grpToLeave.disbandGroup();
+                                    }
+                                }else{
+                                    writeToClient("-ERR not in this group");
+                                }
+                                break;
+                            case KICK: //TODO edit documentatie KICK <GROEPNAAM> <USERNAME>
+                                groupName = message.getPayload().split(" ")[0];
+                                String userToKick = message.getPayload().substring(groupName.length()+1);
+
+                                System.out.println(userToKick);
+
+                                UserGroup currentGroup = groupExists(groupName);
+                                if(currentGroup != null && currentGroup.getGroupowner() == this){
+                                    ClientThread user = currentGroup.getParticipant(userToKick);
+                                    if(user!= null){
+                                        if(user != this) {
+                                            user.joinedUserGroups.remove(currentGroup);
+                                            currentGroup.removeParticipant(user);
+                                            user.writeToClient("+OK kicked From group [" + currentGroup.getGroupname() + "]");
+                                            writeToClient("+OK");
+                                        }else{
+                                            writeToClient("-ERR You cannot kick yourself");
+                                        }
+                                    }else{
+                                        writeToClient("-ERR User is not in this group");
+                                    }
+                                }else{
+                                    writeToClient("-ERR You are not the owner");
+                                }
                                 break;
                             case QUIT:
                                 // Close connection
@@ -281,7 +337,7 @@ public class Server {
          *
          * @param message The message to be sent to the (connected) client.
          */
-        private void writeToClient(String message) {
+        public void writeToClient(String message) {
             boolean shouldDropPacket = false;
             boolean shouldCorruptPacket = false;
 
@@ -375,17 +431,20 @@ public class Server {
         }
 
 
-        private boolean groupExists(String groupname) {
+        private UserGroup groupExists(String groupname) {
             if (groups.isEmpty()) {
-                return false;
+                return null;
             }
             for (int i = 0; i < groups.size(); i++) {
                 if (groups.get(i).getGroupname().equals(groupname)) {
-                    return true;
+                    return groups.get(i);
                 }
             }
-            return false;
+            return null;
         }
 
+        public void removeGroupFromJoinedGroups(UserGroup group){
+            joinedUserGroups.remove(group);
+        }
     }
 }
