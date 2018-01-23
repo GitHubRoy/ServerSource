@@ -3,10 +3,7 @@ package nl.saxion.internettech;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 import static nl.saxion.internettech.ServerState.*;
 
@@ -219,7 +216,7 @@ public class Server {
                                     for (UserGroup group : groups) {
                                         if (group.getGroupname().equals(message.getPayload())) {
                                             if (joinedUserGroups.contains(group)) {
-                                                writeToClient("-ERR already joined this group."); //TODO add this to documentation!
+                                                writeToClient("-ERR already joined this group.");
                                             } else {
                                                 group.addParticipant(this);
                                                 joinedUserGroups.add(group);
@@ -252,7 +249,7 @@ public class Server {
                                     writeToClient("-ERR not in this group");
                                 }
                                 break;
-                            case LVGRP: //TODO documentatie LVGRP <GRP NAAM>
+                            case LVGRP:
                                 String groupToLeave = message.getPayload().trim();
 
                                 UserGroup grpToLeave = groupExists(groupToLeave);
@@ -269,7 +266,7 @@ public class Server {
                                     writeToClient("-ERR not in this group");
                                 }
                                 break;
-                            case KICK: //TODO edit documentatie KICK <GROEPNAAM> <USERNAME>
+                            case KICK:
                                 groupName = message.getPayload().split(" ")[0];
                                 String userToKick = message.getPayload().substring(groupName.length()+1);
 
@@ -293,6 +290,15 @@ public class Server {
                                 }else{
                                     writeToClient("-ERR You are not the owner");
                                 }
+                                break;
+                            case TRNSFR:
+                                String receivinguser = message.getPayload().split(" ") [0];
+                                if (fileTransfer(receivinguser)){
+                                    writeToClient("+OK");
+                                }else{
+                                    writeToClient("-ERR Failed to receive file");
+                                }
+
                                 break;
                             case QUIT:
                                 // Close connection
@@ -445,6 +451,72 @@ public class Server {
 
         public void removeGroupFromJoinedGroups(UserGroup group){
             joinedUserGroups.remove(group);
+        }
+
+        private boolean fileTransfer(String receivingUser) throws IOException{
+            byte[] buffer = new byte[4096];
+
+            is.read(buffer, 0, buffer.length);
+            String file = new String(buffer).trim();
+
+            is.read(buffer, 0, buffer.length);
+            int filesize = Integer.parseInt(new String(buffer).trim());
+
+            FileOutputStream fos = new FileOutputStream(file);
+            int read = 0;
+            int totalRead = 0;
+            int remaining = filesize;
+            while((read = is.read(buffer, 0, Math.min(buffer.length, remaining))) > 0) {
+                totalRead += read;
+                remaining -= read;
+                System.out.println("read " + totalRead + " bytes.");
+                fos.write(buffer, 0, read);
+            }
+            if (totalRead == filesize){
+                try {
+                    File f = new File(file);
+                    sendFile(f, receivingUser);
+                    fos.close();
+                    return true;
+                } catch (IOException io){
+                    fos.close();
+                    return false;
+                }
+            } else{
+                writeToClient("-ERR Failed to receive file");
+                fos.close();
+                return false;
+            }
+        }
+
+        private void sendFile(File file, String receivinguser)throws IOException{
+            boolean succes = false;
+            OutputStream receiver = null;
+            for (ClientThread ct : threads) {
+                if (ct.getUsername().equals(receivinguser)) {
+                    ct.writeToClient("TRNSFR from " + username);
+                    receiver = ct.getOutputStream();
+                    succes = true;
+                }
+            }
+            if (succes && receiver != null){
+            FileInputStream fis = new FileInputStream(file);
+            DataOutputStream dos = new DataOutputStream(receiver);
+            byte[] buffer = new byte[4096];
+
+            byte[] name = file.getName().getBytes();
+            name = Arrays.copyOf(name, 4096);
+            dos.write(name);
+
+            byte[] size = (file.length() + "").getBytes();
+            size = Arrays.copyOf(size, 4096);
+            dos.write(size);
+
+            while (fis.read(buffer) > 0) {
+                dos.write(buffer);
+            }
+            fis.close();
+            }
         }
     }
 }

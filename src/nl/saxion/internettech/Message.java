@@ -12,6 +12,7 @@ public class Message {
         BCGRP,
         LVGRP,
         KICK,
+        TRNSFR,
         QUIT,
         UNKOWN,
     }
