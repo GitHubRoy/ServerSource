@@ -221,7 +221,7 @@ public class Server {
                                                 group.addParticipant(this);
                                                 joinedUserGroups.add(group);
                                                 writeToClient("+OK");
-                                                group.broadcastGroupMessage(getUsername() + " joined Group",this);
+                                                group.broadcastGroupMessage(getUsername() + " joined Group", this);
                                                 break;
                                             }
                                         }
@@ -239,13 +239,13 @@ public class Server {
                                 break;
                             case BCGRP:
                                 String groupName = message.getPayload().split(" ")[0];
-                                String groupMessage = message.getPayload().substring(groupName.length()+1);
+                                String groupMessage = message.getPayload().substring(groupName.length() + 1);
 
                                 UserGroup grpToBroadcast = groupExists(groupName);
-                                if(grpToBroadcast != null && joinedUserGroups.contains(grpToBroadcast)){
-                                    grpToBroadcast.broadcastGroupMessage("["+getUsername()+"]"+groupMessage,this);
+                                if (grpToBroadcast != null && joinedUserGroups.contains(grpToBroadcast)) {
+                                    grpToBroadcast.broadcastGroupMessage("[" + getUsername() + "]" + groupMessage, this);
                                     writeToClient("+OK");
-                                }else{
+                                } else {
                                     writeToClient("-ERR not in this group");
                                 }
                                 break;
@@ -253,49 +253,49 @@ public class Server {
                                 String groupToLeave = message.getPayload().trim();
 
                                 UserGroup grpToLeave = groupExists(groupToLeave);
-                                if(grpToLeave != null && joinedUserGroups.contains(grpToLeave)){
+                                if (grpToLeave != null && joinedUserGroups.contains(grpToLeave)) {
                                     joinedUserGroups.remove(grpToLeave);
                                     boolean isgroupowner = grpToLeave.removeParticipant(this);
                                     writeToClient("+OK");
-                                    if(!isgroupowner) {
+                                    if (!isgroupowner) {
                                         grpToLeave.broadcastGroupMessage(getUsername() + " left the group", this);
-                                    }else{
+                                    } else {
                                         grpToLeave.disbandGroup();
                                     }
-                                }else{
+                                } else {
                                     writeToClient("-ERR not in this group");
                                 }
                                 break;
                             case KICK:
                                 groupName = message.getPayload().split(" ")[0];
-                                String userToKick = message.getPayload().substring(groupName.length()+1);
+                                String userToKick = message.getPayload().substring(groupName.length() + 1);
 
                                 System.out.println(userToKick);
 
                                 UserGroup currentGroup = groupExists(groupName);
-                                if(currentGroup != null && currentGroup.getGroupowner() == this){
+                                if (currentGroup != null && currentGroup.getGroupowner() == this) {
                                     ClientThread user = currentGroup.getParticipant(userToKick);
-                                    if(user!= null){
-                                        if(user != this) {
+                                    if (user != null) {
+                                        if (user != this) {
                                             user.joinedUserGroups.remove(currentGroup);
                                             currentGroup.removeParticipant(user);
                                             user.writeToClient("+OK kicked From group [" + currentGroup.getGroupname() + "]");
                                             writeToClient("+OK");
-                                        }else{
+                                        } else {
                                             writeToClient("-ERR You cannot kick yourself");
                                         }
-                                    }else{
+                                    } else {
                                         writeToClient("-ERR User is not in this group");
                                     }
-                                }else{
+                                } else {
                                     writeToClient("-ERR You are not the owner");
                                 }
                                 break;
                             case TRNSFR:
-                                String receivinguser = message.getPayload().split(" ") [0];
-                                if (fileTransfer(receivinguser)){
+                                String receivinguser = message.getPayload().split(" ")[0];
+                                if (receivinguser != null && fileTransfer(receivinguser)) {
                                     writeToClient("+OK");
-                                }else{
+                                } else {
                                     writeToClient("-ERR Failed to receive file");
                                 }
 
@@ -449,11 +449,11 @@ public class Server {
             return null;
         }
 
-        public void removeGroupFromJoinedGroups(UserGroup group){
+        public void removeGroupFromJoinedGroups(UserGroup group) {
             joinedUserGroups.remove(group);
         }
 
-        private boolean fileTransfer(String receivingUser) throws IOException{
+        private boolean fileTransfer(String receivingUser) throws IOException {
             byte[] buffer = new byte[4096];
 
             is.read(buffer, 0, buffer.length);
@@ -466,56 +466,60 @@ public class Server {
             int read = 0;
             int totalRead = 0;
             int remaining = filesize;
-            while((read = is.read(buffer, 0, Math.min(buffer.length, remaining))) > 0) {
+            while ((read = is.read(buffer, 0, Math.min(buffer.length, remaining))) > 0) {
                 totalRead += read;
                 remaining -= read;
                 System.out.println("read " + totalRead + " bytes.");
                 fos.write(buffer, 0, read);
             }
-            if (totalRead == filesize){
+            if (totalRead == filesize) {
                 try {
                     File f = new File(file);
                     sendFile(f, receivingUser);
+
                     fos.close();
                     return true;
-                } catch (IOException io){
+                } catch (IOException io) {
                     fos.close();
                     return false;
                 }
-            } else{
+            } else {
                 writeToClient("-ERR Failed to receive file");
                 fos.close();
                 return false;
             }
         }
 
-        private void sendFile(File file, String receivinguser)throws IOException{
+        private void sendFile(File file, String receivinguser) throws IOException {
             boolean succes = false;
             OutputStream receiver = null;
+            ClientThread recipient = null;
             for (ClientThread ct : threads) {
                 if (ct.getUsername().equals(receivinguser)) {
                     ct.writeToClient("TRNSFR from " + username);
+                    recipient = ct;
                     receiver = ct.getOutputStream();
                     succes = true;
                 }
             }
-            if (succes && receiver != null){
-            FileInputStream fis = new FileInputStream(file);
-            DataOutputStream dos = new DataOutputStream(receiver);
-            byte[] buffer = new byte[4096];
+            if (succes && receiver != null) {
+                FileInputStream fis = new FileInputStream(file);
+                DataOutputStream dos = new DataOutputStream(receiver);
+                byte[] buffer = new byte[4096];
 
-            byte[] name = file.getName().getBytes();
-            name = Arrays.copyOf(name, 4096);
-            dos.write(name);
+                byte[] name = file.getName().getBytes();
+                name = Arrays.copyOf(name, 4096);
+                dos.write(name);
 
-            byte[] size = (file.length() + "").getBytes();
-            size = Arrays.copyOf(size, 4096);
-            dos.write(size);
+                byte[] size = (file.length() + "").getBytes();
+                size = Arrays.copyOf(size, 4096);
+                dos.write(size);
 
-            while (fis.read(buffer) > 0) {
-                dos.write(buffer);
-            }
-            fis.close();
+                while (fis.read(buffer) > 0) {
+                    dos.write(buffer);
+                }
+                recipient.writeToClient("+OK");
+                fis.close();
             }
         }
     }
