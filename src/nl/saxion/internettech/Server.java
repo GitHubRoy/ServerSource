@@ -1,8 +1,11 @@
 package nl.saxion.internettech;
 
+import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
+
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.PublicKey;
 import java.util.*;
 
 import static nl.saxion.internettech.ServerState.*;
@@ -88,6 +91,7 @@ public class Server {
         private ServerState state;
         private String username;
         private Set<UserGroup> joinedUserGroups = new HashSet<>();
+        private PublicKey publicKey;
 
         public ClientThread(Socket socket) {
             this.state = INIT;
@@ -151,6 +155,10 @@ public class Server {
                                     }
                                 }
                                 break;
+                            case KEY:
+
+
+                                break;
                             case BCST:
                                 // Broadcast to other clients.
                                 for (ClientThread ct : threads) {
@@ -176,6 +184,8 @@ public class Server {
                                 writeToClient("+OK [" + userlist + "]");
                                 break;
                             case MSG:
+                                /*String recepient = message.getPayload();
+                                transferPrivateMessage(recepient);*/
                                 String returnMessage = "";
                                 String[] splits = message.getPayload().split(" ");
                                 String recievingUser = splits[0];
@@ -521,6 +531,35 @@ public class Server {
                 recipient.writeToClient("+OK");
                 fis.close();
             }
+        }
+
+       /* public void transferPrivateMessage(String receipient)throws IOException{
+
+            byte[] buffer = new byte[4096];
+            is.read(buffer, 0, buffer.length);
+            int filesize = Integer.parseInt(new String(buffer).trim());
+
+            int read = 0;
+            int totalRead = 0;
+            int remaining = filesize;
+            while ((read = is.read(buffer, 0, Math.min(buffer.length, remaining))) > 0) {
+                totalRead += read;
+                remaining -= read;
+                System.out.println("read " + totalRead + " bytes.");
+
+            }
+            if (totalRead == filesize){
+                System.out.println("p message has been received");
+            }else {
+                System.out.println("p message  had a problem");
+
+            }
+
+        }*/
+
+        public PublicKey getPublicKey() {
+            PublicKey temp = publicKey;
+            return temp;
         }
     }
 }

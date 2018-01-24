@@ -3,6 +3,7 @@ package nl.saxion.internettech;
 public class Message {
     public enum MessageType {
         HELO,
+        KEY,
         BCST,
         LSTUS,
         MSG,
