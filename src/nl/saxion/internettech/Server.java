@@ -176,10 +176,19 @@ public class Server {
                                 break;
                             case SENDKEY:
                                 stringToKey(message.getPayload());
+                                for (ClientThread ct : threads){
+                                    if (ct != this){
+                                        PublicKey publicKey = publickeys.get(ct.username);
+
+                                        byte[] messagewithPK = publicKey.getEncoded();
+                                        String key = base64encrypt(messagewithPK);
+                                        writeToClient("GETNEWKEY " + ct.username + " " + key);
+                                    }
+                                }
                                 for (ClientThread ct : threads) {
                                     if (ct != null && ct.username != null) {
-                                        if (!ct.getUsername().equals(username)) {
-                                            ct.writeToClient("GETKEY " + username + " " + message.getPayload());
+                                        if (ct != this) {
+                                            ct.writeToClient("GETNEWKEY " + username + " " + message.getPayload());
                                         }
                                     } else {
                                         break;
@@ -505,55 +514,6 @@ public class Server {
                 return false;
             }
         }
-
-       /* private boolean receivePublicKey() throws IOException {
-            /*byte[] buffer = new byte[4096];
-            is.read(buffer, 0, buffer.length);
-            try {
-                PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(buffer));
-                publickeys.put(username, publicKey);
-                return true;
-            } catch (GeneralSecurityException gse) {
-                System.out.println("Problem reinstanceiating Publickey");
-                return false;
-            }
-
-            byte[] buffer = new byte[4096];
-
-            PublicKey newpublicKey;
-            is.read(buffer, 0, buffer.length);
-            BigInteger filesize = Integer.parseInt(new String(buffer).trim());
-
-            FileOutputStream fos = new FileOutputStream(username + "key");
-            int read = 0;
-            int totalRead = 0;
-            int remaining = filesize;
-            while ((read = is.read(buffer, 0, Math.min(buffer.length, remaining))) > 0) {
-                totalRead += read;
-                remaining -= read;
-                System.out.println("read " + totalRead + " bytes.");
-                fos.write(buffer, 0, read);
-            }
-
-            if (totalRead == filesize) {
-                try {
-                    newpublicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(buffer));
-                    publickeys.put(username, newpublicKey);
-                    fos.close();
-                    return true;
-                } catch (GeneralSecurityException gse) {
-                    System.out.println("Problem reinstanceiating Publickey");
-                    return false;
-                } catch (IOException io) {
-                    fos.close();
-                    return false;
-                }
-            } else {
-                writeToClient("-ERR Failed to receive file");
-                fos.close();
-                return false;
-            }
-        }*/
 
         private void sendFile(File file, String receivinguser) throws IOException {
             boolean succes = false;
