@@ -1,11 +1,11 @@
 package nl.saxion.internettech;
 
-import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.security.PublicKey;
+import java.security.*;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 
 import static nl.saxion.internettech.ServerState.*;
@@ -16,6 +16,7 @@ public class Server {
     private Set<ClientThread> threads;
     private ArrayList<UserGroup> groups;
     private ServerConfiguration conf;
+    private HashMap<String, PublicKey> publickeys = new HashMap<>();
 
 
     public Server(ServerConfiguration conf) {
@@ -155,9 +156,35 @@ public class Server {
                                     }
                                 }
                                 break;
-                            case KEY:
-
-
+                            case GETKEY:
+                                message.getPayload();
+                                String[] split = message.getPayload().split(" ");
+                                String name = split[0];
+                                boolean userfound = false;
+                                for (ClientThread ct : threads) {
+                                    if (ct.getUsername().equals(name)) {
+                                        PublicKey temp = publickeys.get(name);
+                                        userfound = true;
+                                        byte[] messagewithPK = temp.getEncoded();
+                                        String key = base64encrypt(messagewithPK);
+                                        writeToClient("GETKEY " + ct.getUsername() + " " + key);
+                                    }
+                                }
+                                if (!userfound) {
+                                    writeToClient("-ERR No user found");
+                                }
+                                break;
+                            case SENDKEY:
+                                stringToKey(message.getPayload());
+                                for (ClientThread ct : threads) {
+                                    if (ct != null && ct.username != null) {
+                                        if (!ct.getUsername().equals(username)) {
+                                            ct.writeToClient("GETKEY " + username + " " + message.getPayload());
+                                        }
+                                    } else {
+                                        break;
+                                    }
+                                }
                                 break;
                             case BCST:
                                 // Broadcast to other clients.
@@ -184,28 +211,7 @@ public class Server {
                                 writeToClient("+OK [" + userlist + "]");
                                 break;
                             case MSG:
-                                /*String recepient = message.getPayload();
-                                transferPrivateMessage(recepient);*/
-                                String returnMessage = "";
-                                String[] splits = message.getPayload().split(" ");
-                                String recievingUser = splits[0];
-
-                                String whisperMessage = message.getPayload().substring(recievingUser.length() + 1);
-
-                                boolean succes = false;
-                                if (threads.size() > 1) {
-                                    for (ClientThread ct : threads) {
-                                        if (ct.getUsername().equals(recievingUser)) {
-                                            ct.writeToClient("WHISPER " + ct.getUsername() + " " + whisperMessage);
-                                            succes = true;
-                                        }
-                                    }
-                                }
-                                if (!succes) {
-                                    writeToClient("-ERR Username doesn't exist.");
-                                } else {
-                                    writeToClient("+OK");
-                                }
+                                transferPrivateMessage(message.getPayload());
                                 break;
                             case MKGRP:
                                 String[] parse = message.getPayload().split(" ");
@@ -500,6 +506,55 @@ public class Server {
             }
         }
 
+       /* private boolean receivePublicKey() throws IOException {
+            /*byte[] buffer = new byte[4096];
+            is.read(buffer, 0, buffer.length);
+            try {
+                PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(buffer));
+                publickeys.put(username, publicKey);
+                return true;
+            } catch (GeneralSecurityException gse) {
+                System.out.println("Problem reinstanceiating Publickey");
+                return false;
+            }
+
+            byte[] buffer = new byte[4096];
+
+            PublicKey newpublicKey;
+            is.read(buffer, 0, buffer.length);
+            BigInteger filesize = Integer.parseInt(new String(buffer).trim());
+
+            FileOutputStream fos = new FileOutputStream(username + "key");
+            int read = 0;
+            int totalRead = 0;
+            int remaining = filesize;
+            while ((read = is.read(buffer, 0, Math.min(buffer.length, remaining))) > 0) {
+                totalRead += read;
+                remaining -= read;
+                System.out.println("read " + totalRead + " bytes.");
+                fos.write(buffer, 0, read);
+            }
+
+            if (totalRead == filesize) {
+                try {
+                    newpublicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(buffer));
+                    publickeys.put(username, newpublicKey);
+                    fos.close();
+                    return true;
+                } catch (GeneralSecurityException gse) {
+                    System.out.println("Problem reinstanceiating Publickey");
+                    return false;
+                } catch (IOException io) {
+                    fos.close();
+                    return false;
+                }
+            } else {
+                writeToClient("-ERR Failed to receive file");
+                fos.close();
+                return false;
+            }
+        }*/
+
         private void sendFile(File file, String receivinguser) throws IOException {
             boolean succes = false;
             OutputStream receiver = null;
@@ -533,29 +588,55 @@ public class Server {
             }
         }
 
-       /* public void transferPrivateMessage(String receipient)throws IOException{
+        public void transferPrivateMessage(String payload) throws IOException {
 
-            byte[] buffer = new byte[4096];
-            is.read(buffer, 0, buffer.length);
-            int filesize = Integer.parseInt(new String(buffer).trim());
+            String receivingUser;
+            String message64;
+            String[] splits = payload.split(" ");
+            if (splits.length > 1) {
+                receivingUser = splits[0];
+                message64 = splits[1];
 
-            int read = 0;
-            int totalRead = 0;
-            int remaining = filesize;
-            while ((read = is.read(buffer, 0, Math.min(buffer.length, remaining))) > 0) {
-                totalRead += read;
-                remaining -= read;
-                System.out.println("read " + totalRead + " bytes.");
-
+                boolean succes = false;
+                if (threads.size() > 1) {
+                    for (ClientThread ct : threads) {
+                        if (ct.getUsername().equals(receivingUser)) {
+                            ct.writeToClient("WHISPER " + username + " " + message64);
+                            succes = true;
+                        }
+                    }
+                }
+                if (!succes) {
+                    writeToClient("-ERR Username doesn't exist.");
+                } else {
+                    writeToClient("+OK");
+                }
             }
-            if (totalRead == filesize){
-                System.out.println("p message has been received");
-            }else {
-                System.out.println("p message  had a problem");
 
+        }
+
+        private String base64encrypt(byte[] message) {
+            String message64 = Base64.getEncoder().encodeToString(message);
+            System.out.println(message64);
+            return message64;
+        }
+
+        private byte[] base64decrypt(String message64) {
+            byte[] message = Base64.getDecoder().decode(message64);
+            return message;
+        }
+
+        private void stringToKey(String message64) {
+
+            byte[] almostkey = base64decrypt(message64);
+            try {
+                PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(almostkey));
+                publickeys.put(username, publicKey);
+                System.out.println("Key added");
+            } catch (GeneralSecurityException gse) {
+                System.out.println("Problem reinstanceiating Publickey");
             }
-
-        }*/
+        }
 
         public PublicKey getPublicKey() {
             PublicKey temp = publicKey;
